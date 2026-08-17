@@ -4,4 +4,9 @@ from .models import MQTTMessage
 
 @admin.register(MQTTMessage)
 class MQTTMessageAdmin(admin.ModelAdmin):
-    list_display = ("id", "topic", "message", "received_at")
+    list_display = (
+        "received_device_id",
+        "topic",
+        "message",
+        "timestamp",
+    )
