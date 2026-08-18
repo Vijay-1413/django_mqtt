@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-p5^nfak3a0)#-b(!24&*8#vluko^!qv5n&ar8ik)o8kut0s(qx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = (10,0,1,137)
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'mqttapp',
     'deviceapp',
     'log',
+    'command',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -107,7 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = ''
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 

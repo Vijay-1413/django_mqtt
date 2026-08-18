@@ -3,6 +3,7 @@ from deviceapp.models import Device
 
 
 class MQTTMessage(models.Model):
+
     device = models.ForeignKey(
         Device,
         on_delete=models.SET_NULL,
@@ -16,10 +17,25 @@ class MQTTMessage(models.Model):
         blank=True
     )
 
-    topic = models.CharField(max_length=200)
+    topic = models.CharField(
+        max_length=200
+    )
+
     message = models.TextField()
 
-    timestamp = models.DateTimeField(auto_now_add=True)
+    send_receive = models.CharField(
+        max_length=10,
+        choices=[
+            ("send", "Send"),
+            ("receive", "Receive"),
+        ],
+        null=True,
+        blank=True
+    )
+
+    timestamp = models.DateTimeField(
+        auto_now_add=True
+    )
 
     device_timestamp = models.DateTimeField(
         null=True,
