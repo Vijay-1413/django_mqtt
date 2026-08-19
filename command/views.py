@@ -2,21 +2,24 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .mqtt_service import publish_command
+from mqttapp.mqtt_service import publish_command
 
 
 class SendCommandAPIView(APIView):
 
     def post(self, request):
+        try:
+            publish_command(request.data)
+            return Response({"status": "Command sent"})
 
-        data = request.data
+        except ValueError as error:
+            return Response(
+                {"error": str(error)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        publish_command(data)
-
-        return Response(
-            {
-                "status": "Command sent",
-                "data": data
-            },
-            status=status.HTTP_200_OK
-        )
+        except Exception as error:
+            return Response(
+                {"error": str(error)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

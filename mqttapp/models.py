@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from deviceapp.models import Device
 
@@ -18,7 +20,18 @@ class MQTTMessage(models.Model):
     )
 
     topic = models.CharField(
-        max_length=200
+        max_length=255
+    )
+
+    message_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+
+    message_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False
     )
 
     message = models.TextField()

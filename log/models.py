@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 
@@ -10,10 +12,32 @@ class Log(models.Model):
     )
 
     topic = models.CharField(
-        max_length=200
+        max_length=255
+    )
+
+    message_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+
+    message_id = models.UUIDField(
+        default=uuid.uuid4,
+        null=True,
+        blank=True
     )
 
     message = models.TextField()
+
+    send_receive = models.CharField(
+        max_length=10,
+        choices=[
+            ("send", "Send"),
+            ("receive", "Receive"),
+        ],
+        null=True,
+        blank=True
+    )
 
     timestamp = models.DateTimeField(
         auto_now_add=True
