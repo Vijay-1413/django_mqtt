@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from mqttapp.mqtt_service import publish_command
+from logs.mqtt_service import publish_command
 
 
 class SendCommandAPIView(APIView):
@@ -10,7 +10,10 @@ class SendCommandAPIView(APIView):
     def post(self, request):
         try:
             publish_command(request.data)
-            return Response({"status": "Command sent"})
+
+            return Response(
+                {"status": "Command sent"}
+            )
 
         except ValueError as error:
             return Response(

@@ -1,10 +1,7 @@
 import json
 import uuid
-import threading
-import time
 
 import paho.mqtt.client as mqtt
-
 from django.utils import timezone
 
 from .models import MQTTMessage
@@ -25,9 +22,6 @@ SUBSCRIBE_2 = "alms/deviceresp/#"
 SUBSCRIBE_3 = "alms/usercmd/#"
 
 client_global = None
-
-mqtt_was_connected = False
-last_connection_state = None
 
 
 def get_device(device_id):
@@ -112,9 +106,6 @@ def publish_command(data):
     if client_global is None:
         raise Exception("MQTT client is not connected")
 
-    if not client_global.is_connected():
-        raise Exception("MQTT client is disconnected")
-
     result = client_global.publish(
         topic,
         message,
@@ -146,7 +137,7 @@ def publish_command(data):
             timestamp
         )
 
-    print("COMMAND SENT:", topic)
+    print("Command sent:", topic)
 
 
 def publish_user_command(
@@ -173,17 +164,10 @@ def publish_user_command(
     print("USER COMMAND TOPIC:", topic)
     print("USER COMMAND MESSAGE:", command_message)
 
-    if not client.is_connected():
-        print(
-            "MQTT DISCONNECTED - USER COMMAND NOT SENT:",
-            device_id
-        )
-        return
-
     result = client.publish(
         topic,
         command_message,
-        qos=1
+        qos=0
     )
 
     print("PUBLISH RESULT:", result.rc)
@@ -227,13 +211,6 @@ def publish_user_response(
 ):
     topic = f"{PUBLISH_USERRESP}/{device_id}"
 
-    if not client.is_connected():
-        print(
-            "MQTT DISCONNECTED - USER RESPONSE NOT SENT:",
-            device_id
-        )
-        return
-
     result = client.publish(
         topic,
         message_text,
@@ -268,21 +245,12 @@ def publish_heartbeat_response(
         "timestamp": data.get("timestamp"),
         "message_type": data.get("message_type"),
         "message": data.get("message"),
-        "message_id": str(
-            data.get("message_id")
-        )
+        "message_id": str(data.get("message_id"))
     }
 
     response_message = json.dumps(response)
 
     response_topic = f"{PUBLISH_2}/{device_id}"
-
-    if not client.is_connected():
-        print(
-            "MQTT DISCONNECTED - HEARTBEAT RESPONSE NOT SENT:",
-            device_id
-        )
-        return
 
     result = client.publish(
         response_topic,
@@ -339,13 +307,6 @@ def publish_device_response(
         "SERVER RESPONSE MESSAGE:",
         response_message
     )
-
-    if not client.is_connected():
-        print(
-            "MQTT DISCONNECTED - SERVER RESPONSE NOT SENT:",
-            device_id
-        )
-        return
 
     result = client.publish(
         response_topic,
@@ -415,9 +376,7 @@ def handle_usercmd(
         "utf-8"
     )
 
-    device = get_device(
-        device_id
-    )
+    device = get_device(device_id)
 
     if device is None:
         message_id = uuid.uuid4()
@@ -589,7 +548,9 @@ def handle_deviceresp(
         timestamp
     )
 
-    message = json.dumps(data)
+    message = json.dumps(
+        data
+    )
 
     device = get_device(
         device_id
@@ -654,49 +615,6 @@ def handle_deviceresp(
         )
 
 
-def subscribe_topics(client):
-    print()
-    print("SUBSCRIBING TO MQTT TOPICS...")
-
-    topics = [
-        SUBSCRIBE_1,
-        SUBSCRIBE_2,
-        SUBSCRIBE_3
-    ]
-
-    for topic in topics:
-        result = client.subscribe(
-            topic,
-            qos=1
-        )
-
-        print(
-            "SUBSCRIBE RESULT:",
-            topic,
-            result
-        )
-
-    print()
-    print(
-        "SUBSCRIBED:",
-        SUBSCRIBE_1
-    )
-
-    print(
-        "SUBSCRIBED:",
-        SUBSCRIBE_2
-    )
-
-    print(
-        "SUBSCRIBED:",
-        SUBSCRIBE_3
-    )
-
-    print(
-        "MQTT TOPIC SUBSCRIPTION COMPLETE"
-    )
-
-
 def on_connect(
     client,
     userdata,
@@ -704,81 +622,40 @@ def on_connect(
     reason_code,
     properties
 ):
-    global mqtt_was_connected
+    print(
+        "MQTT Connected:",
+        reason_code
+    )
 
-    print()
-    print("======================================")
-    print("MQTT CONNECTED")
-    print("REASON CODE:", reason_code)
+    client.subscribe(
+        SUBSCRIBE_1,
+        qos=1
+    )
 
-    if mqtt_was_connected:
-        print("STATUS: RECONNECTED")
-        print("MQTT CONNECTION RESTORED")
-    else:
-        print("STATUS: INITIAL CONNECTION SUCCESSFUL")
+    client.subscribe(
+        SUBSCRIBE_2,
+        qos=1
+    )
 
-    print("======================================")
+    client.subscribe(
+        SUBSCRIBE_3,
+        qos=1
+    )
 
-    mqtt_was_connected = True
+    print(
+        "Subscribed:",
+        SUBSCRIBE_1
+    )
 
-    subscribe_topics(client)
+    print(
+        "Subscribed:",
+        SUBSCRIBE_2
+    )
 
-
-def on_disconnect(
-    client,
-    userdata,
-    disconnect_flags,
-    reason_code,
-    properties
-):
-    global mqtt_was_connected
-
-    print()
-    print("======================================")
-    print("MQTT DISCONNECTED")
-    print("REASON CODE:", reason_code)
-    print("STATUS: DISCONNECTED")
-
-    if reason_code != 0:
-        print("TYPE: UNEXPECTED DISCONNECTION")
-        print("MQTT WILL AUTOMATICALLY RECONNECT")
-    else:
-        print("TYPE: NORMAL DISCONNECTION")
-
-    print("======================================")
-
-    mqtt_was_connected = False
-
-
-def monitor_connection(client):
-    global last_connection_state
-
-    while True:
-        try:
-            current_state = client.is_connected()
-
-            if current_state != last_connection_state:
-
-                print()
-                print("**************************************")
-
-                if current_state:
-                    print("CONNECTION MONITOR: CONNECTED")
-                else:
-                    print("CONNECTION MONITOR: DISCONNECTED")
-
-                print("**************************************")
-
-                last_connection_state = current_state
-
-            time.sleep(1)
-
-        except Exception as error:
-            print(
-                "CONNECTION MONITOR ERROR:",
-                repr(error)
-            )
-            time.sleep(1)
+    print(
+        "Subscribed:",
+        SUBSCRIBE_3
+    )
 
 
 def on_message(
@@ -791,11 +668,23 @@ def on_message(
         payload = msg.payload
 
         print()
-        print("======================================")
-        print("MESSAGE RECEIVED")
-        print("TOPIC:", topic)
-        print("PAYLOAD:", payload)
-        print("======================================")
+        print(
+            "======================================"
+        )
+        print(
+            "MESSAGE RECEIVED"
+        )
+        print(
+            "TOPIC:",
+            topic
+        )
+        print(
+            "PAYLOAD:",
+            payload
+        )
+        print(
+            "======================================"
+        )
 
         if topic.startswith(
             f"{PUBLISH_USERCMD}/"
@@ -856,63 +745,26 @@ def on_message(
 
 def start_mqtt():
     global client_global
-    global mqtt_was_connected
-    global last_connection_state
-
-    mqtt_was_connected = False
-    last_connection_state = None
 
     client_global = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2
     )
 
-    client_global.reconnect_delay_set(
-        min_delay=2,
-        max_delay=30
-    )
-
     client_global.on_connect = on_connect
-    client_global.on_disconnect = on_disconnect
     client_global.on_message = on_message
 
-    print()
-    print("======================================")
-    print("CONNECTING TO MQTT BROKER...")
-    print("BROKER:", BROKER)
-    print("PORT:", PORT)
-    print("======================================")
-
-    monitor_thread = threading.Thread(
-        target=monitor_connection,
-        args=(client_global,),
-        daemon=True
+    print(
+        "Connecting to MQTT broker..."
     )
 
-    monitor_thread.start()
-
-    try:
-        client_global.connect(
-            BROKER,
-            PORT,
-            60
-        )
-
-    except Exception as error:
-        print()
-        print(
-            "INITIAL MQTT CONNECTION FAILED:",
-            repr(error)
-        )
-
-        print(
-            "MQTT LOOP WILL KEEP TRYING TO RECONNECT"
-        )
-
-    print()
-    print("STARTING MQTT LOOP...")
-    print("AUTOMATIC RECONNECTION ENABLED")
-    print("RECONNECT DELAY: 2 - 30 SECONDS")
-
-    client_global.loop_forever(
-        retry_first_connection=True
+    client_global.connect(
+        BROKER,
+        PORT,
+        60
     )
+
+    print(
+        "Starting MQTT loop..."
+    )
+
+    client_global.loop_forever()
